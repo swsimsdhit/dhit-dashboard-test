@@ -1421,7 +1421,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.68.4';
+const DHIT_VERSION = '1.68.5';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1822,10 +1822,7 @@ function showDashboard(sourceName){
   document.getElementById('search-input').value='';
   resetPillsToAll();
   buildHeader();
-  // Apply login user's tab BEFORE buildTabs so active class is set correctly
-  if (currentUser && currentUser.tab) {
-    activeUser = currentUser.tab;
-  }
+  // All users see all tabs — activeUser stays 'All'
   buildTabs(); renderStats(); renderTable();
   // Init scroll collapse (re-init on each data load in case container changed)
   setTimeout(initFilterScroll, 200);

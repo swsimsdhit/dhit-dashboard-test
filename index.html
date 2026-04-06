@@ -1421,7 +1421,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.68.0';
+const DHIT_VERSION = '1.68.1';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1451,8 +1451,8 @@ const DHIT_CONFIG = {
     { username: 'DHITsprerana',       password: 'Dynamic123!@#', role: 'employee', tab: 'Sai',      name: 'Sai'       },
     { username: 'DHITmdugal',   password: 'Dynamic123!@#', role: 'employee', tab: 'Matthew',  name: 'Matthew'   },
     { username: 'DHITrturner',    password: 'Dynamic123!@#', role: 'employee', tab: 'Robert',   name: 'Robert'    },
-    { username: 'DHITprabha',    password: 'Dynamic123!@#', role: 'employee', tab: 'Prabha',   name: 'DHITegraber'    },
-    { username: 'evan',      password: 'Dynamic123!@#', role: 'employee', tab: 'Evan',     name: 'Evan'      },
+    { username: 'DHITprabha',    password: 'Dynamic123!@#', role: 'employee', tab: 'Prabha',   name: 'Prabha'    },
+    { username: 'DHITegraber',      password: 'Dynamic123!@#', role: 'employee', tab: 'Evan',     name: 'Evan'      },
   ]
 };
 
@@ -1923,7 +1923,8 @@ async function fetchGAS(url, secret, silent){
         }
       }
 
-      if(selectedSheets.length) mergeAndLoad(json.spreadsheet || 'Google Sheet');
+      // Empty selectedSheets means all tabs (admin/boss) — always call mergeAndLoad
+      mergeAndLoad(json.spreadsheet || 'Google Sheet');
       return { ok:true, sheetNames: allSheetNames, spreadsheet: json.spreadsheet || 'Google Sheet' };
     }
 

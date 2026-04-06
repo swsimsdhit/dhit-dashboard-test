@@ -1421,7 +1421,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.68.1';
+const DHIT_VERSION = '1.68.2';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1429,30 +1429,25 @@ const DHIT_CONFIG = {
   GAS_SECRET: 'Dynamic123',
 
   // ── User Accounts ──────────────────────────────────────────
-  // Roles:
-  //   admin  — full access (Settings, Audit Log, all tabs)
-  //   boss   — Settings, Audit Log, all tabs
-  //   employee — dashboard, AI sync, themes, own tab pre-selected
-  //
   users: [
     // ── Admin ──
-    { username: 'dhitadmin',  password: 'Dynamic123!@#', role: 'admin',    tab: null,       name: 'Admin'     },
+    { username: 'dhitadmin',    password: 'Dynamic123!@#', role: 'admin',    tab: null,       name: 'Admin'              },
 
     // ── Bosses ──
-    { username: 'rFernandez', password: 'Dynamic123!@#', role: 'boss', tab: null, name: 'Raychelle Fernandez' },
-    { username: 'jRobbins', password: 'Dynamic123!@#', role: 'boss', tab: null, name: 'Jeff Robbins' },
-    { username: 'lRobbins', password: 'Dynamic123!@#', role: 'boss', tab: null, name: 'Luke Robbins' },
+    { username: 'rFernandez',   password: 'Dynamic123!@#', role: 'boss',     tab: null,       name: 'Raychelle Fernandez' },
+    { username: 'jRobbins',     password: 'Dynamic123!@#', role: 'boss',     tab: null,       name: 'Jeff Robbins'        },
+    { username: 'lRobbins',     password: 'Dynamic123!@#', role: 'boss',     tab: null,       name: 'Luke Robbins'        },
 
     // ── Employees ──
-    { username: 'DHITjordoyne',   password: 'Dynamic123!@#', role: 'employee', tab: 'Jessica',  name: 'Jessica'   },
-    { username: 'DHITmdavis',       password: 'Dynamic123!@#', role: 'employee', tab: 'Mat',      name: 'Mat'       },
-    { username: 'DHITlbanks',  password: 'Dynamic123!@#', role: 'employee', tab: 'Lawrence', name: 'Lawrence'  },
-    { username: 'DHITssims',     password: 'Dynamic123!@#', role: 'employee', tab: 'Sayge',    name: 'Sayge'     },
-    { username: 'DHITsprerana',       password: 'Dynamic123!@#', role: 'employee', tab: 'Sai',      name: 'Sai'       },
+    { username: 'DHITjordoyne', password: 'Dynamic123!@#', role: 'employee', tab: 'Jessica',  name: 'Jessica'   },
+    { username: 'DHITmdavis',   password: 'Dynamic123!@#', role: 'employee', tab: 'Mat',      name: 'Mat'       },
+    { username: 'DHITlbanks',   password: 'Dynamic123!@#', role: 'employee', tab: 'Lawrence', name: 'Lawrence'  },
+    { username: 'DHITssims',    password: 'Dynamic123!@#', role: 'employee', tab: 'Sayge',    name: 'Sayge'     },
+    { username: 'DHITsprerana', password: 'Dynamic123!@#', role: 'employee', tab: 'Sai',      name: 'Sai'       },
     { username: 'DHITmdugal',   password: 'Dynamic123!@#', role: 'employee', tab: 'Matthew',  name: 'Matthew'   },
-    { username: 'DHITrturner',    password: 'Dynamic123!@#', role: 'employee', tab: 'Robert',   name: 'Robert'    },
-    { username: 'DHITprabha',    password: 'Dynamic123!@#', role: 'employee', tab: 'Prabha',   name: 'Prabha'    },
-    { username: 'DHITegraber',      password: 'Dynamic123!@#', role: 'employee', tab: 'Evan',     name: 'Evan'      },
+    { username: 'DHITrturner',  password: 'Dynamic123!@#', role: 'employee', tab: 'Robert',   name: 'Robert'    },
+    { username: 'DHITprabha',   password: 'Dynamic123!@#', role: 'employee', tab: 'Prabha',   name: 'Prabha'    },
+    { username: 'DHITegraber',  password: 'Dynamic123!@#', role: 'employee', tab: 'Evan',     name: 'Evan'      },
   ]
 };
 
@@ -1467,7 +1462,7 @@ function getUser(username, password) {
 }
 
 function canAccessSettings() {
-  return currentUser && (currentUser.role === 'admin' || currentUser.role === 'boss');
+  return currentUser !== null; // all logged-in users can open Settings
 }
 function canAccessAudit() {
   return currentUser && (currentUser.role === 'admin' || currentUser.role === 'boss');
@@ -1566,13 +1561,13 @@ function applyRoleUI() {
   const canSettings = canAccessSettings();
   const canAudit    = canAccessAudit();
 
-  // Settings button — only boss/admin
+  // Settings button — visible to all users
   const settingsBtn = document.querySelector('.icon-btn[onclick="openSettings()"]');
-  if (settingsBtn) settingsBtn.style.display = canSettings ? '' : 'none';
+  if (settingsBtn) settingsBtn.style.display = '';
 
   // Mobile settings nav button
   const mobileSettingsBtn = document.querySelector('.mobile-nav-btn[onclick="openSettings()"]');
-  if (mobileSettingsBtn) mobileSettingsBtn.style.display = canSettings ? 'flex' : 'none';
+  if (mobileSettingsBtn) mobileSettingsBtn.style.display = 'flex';
 
   // Add or update logout button in toolbar
   const toolbar = document.querySelector('.toolbar');
@@ -1947,6 +1942,11 @@ async function fetchGAS(url, secret, silent){
 
 // ── Merge selected sheets into allRows ──────────────────────
 function mergeAndLoad(spreadsheetName){
+  // For admin/boss, selectedSheets is empty meaning "all" — populate it now
+  if(!selectedSheets.length){
+    const allNames = Object.keys(gasSheetData).filter(n=>!n.startsWith('_')&&n!=='Done');
+    if(allNames.length) selectedSheets = [...allNames];
+  }
   const merged = [];
   selectedSheets.filter(n=>!n.startsWith('_') && n!=='Done').forEach(name => {
     const sheet = gasSheetData[name];
@@ -2115,7 +2115,7 @@ function fmt(d){return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}
 
 // ── Settings modal ──────────────────────────────────────────
 function openSettings(){
-  if(!canAccessSettings()){ return; } // employees cannot open settings
+  if(!currentUser){ return; } // must be logged in
   // Generate QR code for current URL
   const qrDiv = document.getElementById('settings-qr-div');
   if(qrDiv){
@@ -2133,12 +2133,12 @@ function openSettings(){
   document.getElementById('settings-gas-status').textContent='';
   renderThemeGrid();
 
-  // Show or hide GAS section depending on data source
+  // GAS URL/secret section — admin only
   const gasSection = document.getElementById('settings-gas-section');
   const gasDivider = document.getElementById('settings-gas-divider');
-  const isGAS = dataSource === 'gas';
-  gasSection.style.display = isGAS ? '' : 'none';
-  if(gasDivider) gasDivider.style.display = isGAS ? '' : 'none';
+  const showGAS = isAdmin() && dataSource === 'gas';
+  gasSection.style.display = showGAS ? '' : 'none';
+  if(gasDivider) gasDivider.style.display = showGAS ? '' : 'none';
 
   if(isGAS && Object.keys(gasSheetData).length){
     renderSheetPicker(Object.keys(gasSheetData), true);

@@ -1421,7 +1421,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.68.3';
+const DHIT_VERSION = '1.68.4';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -2133,7 +2133,7 @@ function openSettings(){
   gasSection.style.display = showGAS ? '' : 'none';
   if(gasDivider) gasDivider.style.display = showGAS ? '' : 'none';
 
-  if(isGAS && Object.keys(gasSheetData).length){
+  if(dataSource === 'gas' && Object.keys(gasSheetData).length){
     renderSheetPicker(Object.keys(gasSheetData), true);
   } else {
     document.getElementById('settings-sheet-picker').style.display='none';

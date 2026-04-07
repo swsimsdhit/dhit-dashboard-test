@@ -1123,6 +1123,21 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
   50%      { box-shadow: 0 0 0 8px rgba(88,166,255,.1); }
 }
 
+
+/* ── Settings modal ─────────────────────────────────────── */
+#settings-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+#settings-modal.open {
+  display: flex;
+}
+
 </style>
 </head>
 <body>
@@ -1399,7 +1414,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 
 
 <!-- ── Settings modal ───────────────────────────────────────── -->
-<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeSettings()">
+<div id="settings-modal" onclick="if(event.target===this)closeSettings()">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,90vw);position:relative;max-height:90vh;overflow-y:auto">
     <button onclick="closeSettings()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px 8px;border-radius:6px" title="Close">✕</button>
     <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">⚙️ Settings</h2>
@@ -1519,7 +1534,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.0';
+const DHIT_VERSION = '1.69.1';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -2232,9 +2247,9 @@ function openSettings(){
     document.getElementById('settings-sheet-picker').style.display='none';
   }
   const m=document.getElementById('settings-modal');
-  m.style.display='flex';
+  m.classList.add('open'); m.style.display='';
 }
-function closeSettings(){ document.getElementById('settings-modal').style.display='none'; }
+function closeSettings(){ const m=document.getElementById('settings-modal'); m.classList.remove('open'); m.style.display=''; }
 async function saveSettingsGAS(){
   const url    = document.getElementById('settings-gas-url').value.trim();
   const secret = document.getElementById('settings-gas-secret').value.trim();

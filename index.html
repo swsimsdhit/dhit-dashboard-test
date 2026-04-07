@@ -960,10 +960,14 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
   max-height: 600px;
   opacity: 1;
 }
+#filter-area {
+  transition: max-height .25s ease, opacity .2s ease, margin .25s ease;
+}
 #filter-area.filters-collapsed {
   max-height: 0;
   opacity: 0;
   pointer-events: none;
+  overflow: hidden;
   margin: 0;
 }
 #filter-summary-bar {
@@ -1052,6 +1056,71 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
   40%{transform:translateX(8px)}
   60%{transform:translateX(-6px)}
   80%{transform:translateX(6px)}
+}
+
+
+/* ── Tutorial overlay ─────────────────────────────────── */
+#tutorial-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+}
+#tutorial-overlay.active { display: block; }
+.tutorial-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  pointer-events: all;
+}
+.tutorial-card {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 20px 22px 16px;
+  width: min(340px, 88vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  pointer-events: all;
+  z-index: 2001;
+}
+.tutorial-card h4 {
+  font-size: .9rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.tutorial-card p {
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.tutorial-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.tutorial-progress {
+  font-size: .7rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.tutorial-highlight {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(88,166,255,.25);
+  pointer-events: none;
+  z-index: 1999;
+  transition: all .3s ease;
+  animation: tut-pulse 1.5s infinite;
+}
+@keyframes tut-pulse {
+  0%,100% { box-shadow: 0 0 0 4px rgba(88,166,255,.25); }
+  50%      { box-shadow: 0 0 0 8px rgba(88,166,255,.1); }
 }
 
 </style>
@@ -1330,8 +1399,9 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 
 
 <!-- ── Settings modal ───────────────────────────────────────── -->
-<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,90vw);position:relative">
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeSettings()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,90vw);position:relative;max-height:90vh;overflow-y:auto">
+    <button onclick="closeSettings()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px 8px;border-radius:6px" title="Close">✕</button>
     <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">⚙️ Settings</h2>
 
     <!-- Theme section -->
@@ -1386,15 +1456,25 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
           <p style="font-size:.72rem;color:var(--muted);margin:5px 0 0;line-height:1.4">Track all visits, task changes, completions, and new tasks with before/after values and IP addresses.</p>
         </div>
 
-        <!-- QR Code section -->
-        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
-          <div style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">📱 Open on Phone</div>
-          <div style="display:flex;align-items:center;gap:16px">
-            <div id="settings-qr-div" style="width:100px;height:100px;background:#fff;border-radius:8px;flex-shrink:0;overflow:hidden;border:1px solid var(--border)"></div>
-            <p style="font-size:.75rem;color:var(--muted);line-height:1.5;margin:0">Scan with your phone camera to open the dashboard on mobile.</p>
-          </div>
-        </div>
       </div>
+    </div>
+
+    <!-- QR Code — visible to ALL users -->
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">📱 Open on Phone</div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div id="settings-qr-div" style="width:100px;height:100px;background:#fff;border-radius:8px;flex-shrink:0;overflow:hidden;border:1px solid var(--border)"></div>
+        <p style="font-size:.75rem;color:var(--muted);line-height:1.5;margin:0">Scan with your phone camera to open the dashboard on mobile.</p>
+      </div>
+    </div>
+
+    <!-- Tutorial button — visible to ALL users -->
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">🎓 Tutorial</div>
+        <button class="btn-ghost" style="font-size:.78rem;padding:5px 14px" onclick="closeSettings();startTutorial()">▶ View Tutorial</button>
+      </div>
+      <p style="font-size:.72rem;color:var(--muted);margin:5px 0 0;line-height:1.4">Walk through all dashboard features step by step.</p>
     </div>
   </div>
 </div>
@@ -1410,6 +1490,24 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
   <div class="rd-body" id="rd-body"></div>
 </div>
 
+
+<!-- ── Tutorial overlay ──────────────────────────────────── -->
+<div id="tutorial-overlay">
+  <div class="tutorial-backdrop" onclick="skipTutorial()"></div>
+  <div class="tutorial-highlight" id="tutorial-highlight" style="display:none"></div>
+  <div class="tutorial-card" id="tutorial-card">
+    <h4 id="tutorial-title">Welcome to DHIT Task Dashboard</h4>
+    <p id="tutorial-body">Let's walk through the key features.</p>
+    <div class="tutorial-actions">
+      <span class="tutorial-progress" id="tutorial-progress">1 / 8</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-ghost" style="font-size:.75rem;padding:4px 12px" onclick="skipTutorial()">Skip</button>
+        <button class="btn-primary" style="font-size:.75rem;padding:4px 14px" onclick="nextTutorialStep()" id="tutorial-next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── State ───────────────────────────────────────────────────
 
@@ -1421,7 +1519,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.68.5';
+const DHIT_VERSION = '1.69.0';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1540,6 +1638,8 @@ function attemptLogin() {
     btn.disabled = false;
     btn.textContent = 'Sign In';
     startPolling();
+    // Show tutorial on first login
+    setTimeout(checkFirstLoginTutorial, 800);
   }).catch((err) => {
     btn.disabled = false;
     btn.textContent = 'Sign In';
@@ -2106,15 +2206,11 @@ function fmt(d){return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}
 // ── Settings modal ──────────────────────────────────────────
 function openSettings(){
   if(!currentUser){ return; } // must be logged in
-  // Generate QR code for current URL
-  const qrDiv = document.getElementById('settings-qr-div');
-  if(qrDiv){
-    const url = window.location.href.split('?')[0].split('#')[0];
-    if(url && url.startsWith('http')){
-      // Use setTimeout so the modal is visible and div has layout before rendering
-      setTimeout(function(){ generateQRCanvas(qrDiv, url, 100); }, 80);
-    }
-  }
+  // Generate QR code for current URL — always, for all users
+  setTimeout(function(){
+    const qrDiv = document.getElementById('settings-qr-div');
+    if(qrDiv){ qrDiv.innerHTML = ''; const url = window.location.href.split('?')[0].split('#')[0]; if(url && url.startsWith('http')) generateQRCanvas(qrDiv, url, 100); }
+  }, 80);
   document.getElementById('settings-gas-url').value = '';
   const secretField = document.getElementById('settings-gas-secret');
   secretField.value = '';
@@ -2558,7 +2654,7 @@ function expandFilters() {
   _filterCollapsed = false;
   var fa = document.getElementById('filter-area');
   var sb = document.getElementById('filter-summary-bar');
-  if (fa) fa.classList.remove('filters-collapsed');
+  if (fa) { fa.classList.remove('filters-collapsed'); fa.style.pointerEvents = ''; }
   if (sb) sb.style.display = 'none';
 }
 
@@ -3057,6 +3153,27 @@ function renderTable(){
 
   document.getElementById('row-count').textContent=`Showing ${rows.length} of ${allRows.length} task${allRows.length!==1?'s':''}`;
 }
+function setStatusDirect(idx, newStatus){
+  const row = allRows[idx];
+  if(!row) return;
+  statusMap[idx] = newStatus;
+  const key = (row.__sheetTab||'') + '||' + (columns.task ? (row[columns.task]||'') : idx);
+  if(!localOverrides[key]) localOverrides[key] = {};
+  localOverrides[key].status = newStatus;
+  if(columns.status) allRows[idx][columns.status] = newStatus;
+  renderStats(); renderTable();
+  // Write to sheet
+  if(gasUrl && gasSecret && columns.status){
+    const assignee = row.__sheetTab || '';
+    const taskText = columns.task ? (row[columns.task]||'').toString().trim() : '';
+    if(newStatus === 'Complete'){
+      completeTaskOnSheet(assignee, taskText);
+    } else {
+      writeCell(assignee, taskText, columns.status, newStatus, idx);
+    }
+  }
+}
+
 function cycleStatus(idx){
   // Cycle: Active → Inactive → On Hold → Active  (Complete is set by the sheet, not cycled)
   const cycle = {'Active':'Inactive','Inactive':'On Hold','On Hold':'Active','Complete':'Active'};
@@ -4118,6 +4235,127 @@ function fetchKeyFromGAS(){
 }
 
 
+
+// ── Tutorial ──────────────────────────────────────────────────
+const TUTORIAL_STEPS = [
+  {
+    title: '👋 Welcome to DHIT Task Dashboard',
+    body: 'This quick tour covers all the key features. Click Next to begin, or Skip to close.',
+    target: null
+  },
+  {
+    title: '🔍 Search & Filter',
+    body: 'Use the search bar to find tasks by any keyword. The priority pills (Critical, High, Medium, Low) and status pills filter the table instantly.',
+    target: '.pills-wrap'
+  },
+  {
+    title: '📊 Summary Cards',
+    body: 'The stat cards show your totals at a glance — Total, Active, Critical, High, Medium, and Low tasks.',
+    target: '.stat-cards'
+  },
+  {
+    title: '👥 Filter Groups',
+    body: 'Expand the Clients, Products, and Assignee sections to drill into specific areas. Click any chip to filter.',
+    target: '#clients-group'
+  },
+  {
+    title: '📋 Task Rows',
+    body: 'Click any task row to open the detail panel on the right. You can edit Priority, Due Date, Notes, and Status directly from there.',
+    target: 'table tbody tr'
+  },
+  {
+    title: '✅ Status & Complete',
+    body: 'In the detail panel, use the Status dropdown to change a task\u2019s state — or click Mark as Complete to finish it and log it to the Done sheet.',
+    target: null
+  },
+  {
+    title: '🤖 AI Features',
+    body: 'Use AI Import to paste raw task text and have AI populate your sheet automatically. Ask AI lets you query your tasks in plain English.',
+    target: '#ai-import-btn'
+  },
+  {
+    title: '⚙️ Settings',
+    body: 'Open Settings to change your theme, manage sheets, scan the QR code for mobile access, view the Audit Log, or run this tutorial again.',
+    target: '.icon-btn[onclick="openSettings()"]'
+  }
+];
+
+let _tutorialStep = 0;
+let _tutorialActive = false;
+
+function startTutorial() {
+  _tutorialStep = 0;
+  _tutorialActive = true;
+  document.getElementById('tutorial-overlay').classList.add('active');
+  renderTutorialStep();
+}
+
+function skipTutorial() {
+  _tutorialActive = false;
+  document.getElementById('tutorial-overlay').classList.remove('active');
+  document.getElementById('tutorial-highlight').style.display = 'none';
+  // Mark as seen in localStorage
+  try { localStorage.setItem('dhit-tutorial-seen', '1'); } catch(e){}
+}
+
+function nextTutorialStep() {
+  _tutorialStep++;
+  if(_tutorialStep >= TUTORIAL_STEPS.length) {
+    skipTutorial();
+    return;
+  }
+  renderTutorialStep();
+}
+
+function renderTutorialStep() {
+  const step = TUTORIAL_STEPS[_tutorialStep];
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-body').textContent = step.body;
+  document.getElementById('tutorial-progress').textContent = (_tutorialStep + 1) + ' / ' + TUTORIAL_STEPS.length;
+  const nextBtn = document.getElementById('tutorial-next-btn');
+  nextBtn.textContent = _tutorialStep === TUTORIAL_STEPS.length - 1 ? 'Done ✓' : 'Next →';
+
+  // Highlight target element
+  const hl = document.getElementById('tutorial-highlight');
+  const card = document.getElementById('tutorial-card');
+  if(step.target) {
+    const el = document.querySelector(step.target);
+    if(el) {
+      const r = el.getBoundingClientRect();
+      hl.style.display = 'block';
+      hl.style.top    = (r.top - 4) + 'px';
+      hl.style.left   = (r.left - 4) + 'px';
+      hl.style.width  = (r.width + 8) + 'px';
+      hl.style.height = (r.height + 8) + 'px';
+      // Position card below or above the target
+      const cardTop = r.bottom + 14 < window.innerHeight - 160
+        ? r.bottom + 14
+        : r.top - 160;
+      card.style.top  = Math.max(10, cardTop) + 'px';
+      card.style.left = Math.min(r.left, window.innerWidth - 360) + 'px';
+      card.style.transform = 'none';
+    } else {
+      positionCardCenter(card, hl);
+    }
+  } else {
+    positionCardCenter(card, hl);
+  }
+}
+
+function positionCardCenter(card, hl) {
+  hl.style.display = 'none';
+  card.style.top  = '50%';
+  card.style.left = '50%';
+  card.style.transform = 'translate(-50%,-50%)';
+}
+
+function checkFirstLoginTutorial() {
+  try {
+    const seen = localStorage.getItem('dhit-tutorial-seen');
+    if(!seen) startTutorial();
+  } catch(e){}
+}
+
 function resetApp(){
   stopPolling();
   allRows=[];columns={};statusMap={};activeUser='All';activePriority='All';activeStatus='All';activeProducts=[];activeClients=[];activeAssignees=[];sortCol=null;sortDir=1;dataSource='file';
@@ -4378,15 +4616,21 @@ function openRowDetail(idx){
         oninput="saveFieldEdit(${idx},'notes',this.value)">${esc(curNotes)}</textarea>
     </div>`;
 
-  // ── Status toggle ──
-  const statusCls2 = {'Active':'active-s','Inactive':'inactive-s','Complete':'complete-s','On Hold':'onhold-s'}[rowStatus]||'inactive-s';
-  const statusField = `
-    <div class="rd-field"><div class="rd-label">Status</div>
-      <button class="status-toggle ${statusCls2}" style="font-size:.8rem;padding:4px 14px;margin-top:2px"
-        onclick="cycleStatus(${idx});setTimeout(()=>openRowDetail(${idx}),50)">
-        ${rowStatus}
-      </button>
-    </div>`;
+  // ── Status dropdown + Mark as Complete button ──
+  const selActive   = rowStatus==='Active'   ? 'selected' : '';
+  const selInactive = rowStatus==='Inactive' ? 'selected' : '';
+  const selOnHold   = rowStatus==='On Hold'  ? 'selected' : '';
+  const selComplete = rowStatus==='Complete' ? 'selected' : '';
+  const completeBtn = rowStatus !== 'Complete'
+    ? '<div class="rd-field"><button class="btn-primary" style="width:100%;padding:10px;font-size:.85rem;background:#2ea043;border-color:#2ea043" onclick="setStatusDirect(' + idx + ',\'Complete\');setTimeout(()=>openRowDetail(' + idx + '),50)">🏁 Mark as Complete</button></div>'
+    : '<div class="rd-field"><div style="font-size:.75rem;color:var(--complete-color,#58a6ff);font-weight:600;text-align:center;padding:6px;background:var(--complete-bg,rgba(88,166,255,.1));border-radius:8px">🏁 This task is complete</div></div>';
+  const statusField = '<div class="rd-field"><div class="rd-label">Status</div>'
+    + '<select class="rd-select" id="rd-edit-status" onchange="setStatusDirect(' + idx + ',this.value);setTimeout(()=>openRowDetail(' + idx + '),50)">'
+    + '<option value="Active" ' + selActive + '>✅ Active</option>'
+    + '<option value="Inactive" ' + selInactive + '>⏸ Inactive</option>'
+    + '<option value="On Hold" ' + selOnHold + '>🔶 On Hold</option>'
+    + '<option value="Complete" ' + selComplete + '>🏁 Complete</option>'
+    + '</select></div>' + completeBtn;
 
   document.getElementById('rd-body').innerHTML =
     readOnlyFields + priorityField + dueDateField + notesField + statusField;

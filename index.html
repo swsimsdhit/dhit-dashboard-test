@@ -1534,7 +1534,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.1';
+const DHIT_VERSION = '1.69.2';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1616,6 +1616,7 @@ function attemptLogin() {
   allRows = []; columns = {};
   activeUser = 'All'; activePriority = 'All'; activeStatus = 'All';
   lastSyncedTime = null;
+  _dashboardInitialized = false;
   localStorage.removeItem('gas-url');
   localStorage.removeItem('gas-secret');
   localStorage.removeItem('gas-sheets');
@@ -1710,6 +1711,7 @@ function logoutUser() {
   allRows = []; columns = {};
   activeUser = 'All'; activePriority = 'All'; activeStatus = 'All';
   lastSyncedTime = null;
+  _dashboardInitialized = false;
 
   // Clear localStorage
   localStorage.removeItem('gas-url');
@@ -1776,7 +1778,7 @@ let gasUrl='', gasSecret='', pollTimer=null, pollCountdownTimer=null, dataSource
 let clientIP = '';
 // Fetch client IP once (sent with writes for audit log)
 fetch('https://api.ipify.org?format=json').then(function(r){return r.json();}).then(function(d){clientIP=d.ip||'';}).catch(function(){});
-let lastSyncedTime=null, gasSheetData={}, selectedSheets=[];
+let lastSyncedTime=null, gasSheetData={}, selectedSheets=[], _dashboardInitialized=false;
 const POLL_MS = 15*60*1000; // 15 minutes
 const PRIORITY_ORDER={critical:0,high:1,medium:2,low:3};
 
@@ -1932,10 +1934,15 @@ function showDashboard(sourceName){
   document.getElementById('poll-bar').style.display   = (gasConnected && !mobile) ? '' : 'none';
   document.getElementById('poll-badge').style.display = (gasConnected && !mobile) ? '' : 'none';
 
-  activeUser='All'; activePriority='All'; activeStatus='All';
-  sortCol=null; sortDir=1;
-  document.getElementById('search-input').value='';
-  resetPillsToAll();
+  // Only reset filters on first load — preserve them during poll refreshes
+  const isFirstLoad = allRows.length === 0 || !_dashboardInitialized;
+  if(isFirstLoad){
+    _dashboardInitialized = true;
+    activeUser='All'; activePriority='All'; activeStatus='All';
+    sortCol=null; sortDir=1;
+    document.getElementById('search-input').value='';
+    resetPillsToAll();
+  }
   buildHeader();
   // All users see all tabs — activeUser stays 'All'
   buildTabs(); renderStats(); renderTable();

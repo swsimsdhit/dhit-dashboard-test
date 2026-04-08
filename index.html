@@ -1417,7 +1417,8 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 <div id="settings-modal" onclick="if(event.target===this)closeSettings()">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:min(480px,90vw);position:relative;max-height:90vh;overflow-y:auto">
     <button onclick="closeSettings()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px 8px;border-radius:6px" title="Close">✕</button>
-    <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">⚙️ Settings</h2>
+    <h2 style="font-size:1rem;font-weight:700;margin-bottom:3px">⚙️ Settings</h2>
+    <div id="settings-version" style="font-size:.68rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;letter-spacing:.03em"></div>
 
     <!-- Theme section -->
     <div style="margin-bottom:18px">
@@ -1534,7 +1535,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.3';
+const DHIT_VERSION = '1.69.4';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -2253,6 +2254,9 @@ function openSettings(){
   } else {
     document.getElementById('settings-sheet-picker').style.display='none';
   }
+  // Show version in settings header
+  const verEl = document.getElementById('settings-version');
+  if(verEl) verEl.textContent = 'v' + (typeof DHIT_VERSION !== 'undefined' ? DHIT_VERSION : '—');
   const m=document.getElementById('settings-modal');
   m.classList.add('open'); m.style.display='';
 }
@@ -2873,10 +2877,11 @@ function renderStats(){
         cbody.querySelectorAll('[data-client]').forEach(el=>{
           const key=el.dataset.client, isActive=key==='All'?allActive:activeClients.includes(key);
           el.classList.toggle('active-filter',isActive);
+          if(!el.onclick) el.onclick = function(){ setClientFilter(this.dataset.client); };
           const valEl=el.querySelector('.chip-val');
           if(valEl){if(key==='All')valEl.textContent=rows.length;else if(clientCounts[key]!==undefined)valEl.textContent=clientCounts[key];}
           const existing=el.querySelector('.chip-clear');
-          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.dataset.client=key;x.dataset.removeClient='1';x.textContent='✕';el.appendChild(x);}
+          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.onclick=function(e){e.stopPropagation();removeClientFilter(key);};x.textContent='✕';el.appendChild(x);}
           else if((!isActive||key==='All')&&existing){existing.remove();}
         });
       }
@@ -2933,6 +2938,7 @@ function renderStats(){
         const key = el.dataset.product;
         const isActive = key === 'All' ? allActive : activeProducts.includes(key);
         el.classList.toggle('active-filter', isActive);
+        if(!el.onclick) el.onclick = function(){ setProductFilter(this.dataset.product); };
 
         // Update count
         const valEl = el.querySelector('.chip-val');
@@ -2946,8 +2952,7 @@ function renderStats(){
         if(isActive && key !== 'All' && !existing){
           const x = document.createElement('span');
           x.className = 'chip-clear';
-          x.dataset.product = key;
-          x.dataset.remove = '1';
+          x.onclick = function(e){ e.stopPropagation(); removeProductFilter(key); };
           x.textContent = '✕';
           el.appendChild(x);
         } else if((!isActive || key === 'All') && existing){
@@ -2996,7 +3001,8 @@ function renderStats(){
           const valEl=el.querySelector('.chip-val');
           if(valEl){if(key==='All')valEl.textContent=rows.length;else if(assigneeCounts[key]!==undefined)valEl.textContent=assigneeCounts[key];}
           const existing=el.querySelector('.chip-clear');
-          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.dataset.assignee=key;x.dataset.removeAssignee='1';x.textContent='✕';el.appendChild(x);}
+          if(!el.onclick) el.onclick = function(){ setAssigneeFilter(this.dataset.assignee); };
+          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.onclick=function(e){e.stopPropagation();removeAssigneeFilter(key);};x.textContent='✕';el.appendChild(x);}
           else if((!isActive||key==='All')&&existing){existing.remove();}
         });
       }

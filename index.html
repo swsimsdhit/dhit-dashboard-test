@@ -1534,7 +1534,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.2';
+const DHIT_VERSION = '1.69.3';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -2984,8 +2984,8 @@ function renderStats(){
       const newAKeys = ['All',...assignees].join(',');
       if(existingAKeys !== newAKeys){
         const chip = (val, label, isActive, key) => {
-          const xBtn = isActive && key!=='All' ? `<span class="chip-clear" data-assignee="${esc(key)}" data-remove-assignee="1">✕</span>` : '';
-          return `<div class="stat-chip ${isActive?'active-filter':''}" data-assignee="${esc(key)}"><span class="chip-val">${val}</span><span class="chip-lbl">${esc(label)}</span>${xBtn}</div>`;
+          const xBtn = isActive && key!=='All' ? `<span class="chip-clear" onclick="event.stopPropagation();removeAssigneeFilter('${esc(key)}')">✕</span>` : '';
+          return `<div class="stat-chip ${isActive?'active-filter':''}" data-assignee="${esc(key)}" onclick="setAssigneeFilter('${esc(key)}')" style="cursor:pointer"><span class="chip-val">${val}</span><span class="chip-lbl">${esc(label)}</span>${xBtn}</div>`;
         };
         abody.innerHTML = chip(rows.length,'All',activeAssignees.length===0,'All') + assignees.map(a=>chip(assigneeCounts[a],a,activeAssignees.includes(a),a)).join('');
       } else {

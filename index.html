@@ -426,6 +426,7 @@ header h1 span{color:var(--accent)}
 .pill[data-s="Inactive"] {background:var(--none-bg);color:var(--none)}
 .pill[data-s="Complete"] {background:var(--complete-bg);color:var(--complete-color)}
 .pill[data-s="On Hold"]  {background:var(--onhold-bg);color:var(--onhold-color)}
+.pill[data-s="Blocked"]  {background:rgba(239,68,68,.12);color:#ef4444}
 
 /* Stats */
 .stats-bar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
@@ -466,6 +467,7 @@ td.col-status{width:86px;text-align:center}
 .status-toggle.active-s{background:var(--low-bg);color:var(--active-color)}
 .status-toggle.inactive-s{background:var(--none-bg);color:var(--none)}
 .status-toggle.complete-s{background:var(--complete-bg);color:var(--complete-color)}
+.status-toggle.blocked-s{background:rgba(239,68,68,.12);color:#ef4444}
 .status-toggle.onhold-s{background:var(--onhold-bg);color:var(--onhold-color)}
 .p-badge{display:inline-block;font-size:.62rem;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .p-badge.critical{background:var(--critical-bg);color:var(--critical)}
@@ -1224,6 +1226,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
     <button class="pill"        data-s="Active"   onclick="setStatus(this)">✅ Active</button>
     <button class="pill"        data-s="Inactive" onclick="setStatus(this)">⏸ Inactive</button>
     <button class="pill"        data-s="On Hold"  onclick="setStatus(this)">🔶 On Hold</button>
+    <button class="pill"        data-s="Blocked"  onclick="setStatus(this)">🚫 Blocked</button>
     <button class="pill"        data-s="Complete" onclick="setStatus(this)">🏁 Complete</button>
   </div>
 
@@ -1336,7 +1339,13 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
           <p style="font-size:.68rem;color:var(--muted);margin:4px 0 0;line-height:1.4">Tasks fetched automatically on Sync.</p>
         </div>
         <div style="flex:1">
-          <label style="font-size:.73rem;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">Paste today's task list</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label style="font-size:.73rem;color:var(--muted);font-weight:600">Paste today's task list</label>
+            <label style="font-size:.72rem;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:600" title="Upload a CSV file">
+              📎 Upload CSV
+              <input type="file" id="ai-csv-upload" accept=".csv,text/csv" style="display:none" onchange="loadCSVIntoAI(this)">
+            </label>
+          </div>
           <textarea id="ai-rawtext" rows="4"
             placeholder="Paste from Teams, email, notes — any format.&#10;&#10;Or click 📷 Upload screenshot above to let AI read your tasks directly from a screenshot."
             style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.8rem;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
@@ -1535,7 +1544,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.5';
+const DHIT_VERSION = '1.69.6';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -1797,6 +1806,7 @@ function detectColumns(headers){
     dateDue:   find('due date','due','deadline','target date'),
     dateCompleted: find('date completed','completed','finished','resolved'),
     notes:     find('notes','depend','comment','detail'),
+    jira:      find('jira','ticket','issue','jira ticket','jira url'),
     assignee:  find('assign','owner','person','user','name','who'),
     status:    find('status','active'),
   };
@@ -1829,7 +1839,7 @@ function loadRows(rows, sourceName, source){
     } else if(columns.status){
       const raw = (row[columns.status] || '').toString().trim();
       // Normalize to one of the four known statuses
-      const normalized = ({'active':'Active','inactive':'Inactive','complete':'Complete','on hold':'On Hold'})[raw.toLowerCase()] || raw || 'Active';
+      const normalized = ({'active':'Active','inactive':'Inactive','complete':'Complete','on hold':'On Hold','blocked':'Blocked'})[raw.toLowerCase()] || raw || 'Active';
       statusMap[i] = normalized;
     } else {
       statusMap[i] = 'Active';
@@ -2340,6 +2350,7 @@ function getDisplayCols(){
   if(columns.assignee || allRows.some(r=>r.__sheetTab))
     c.push({key:'assignee', label:'Assignee'});
   if(columns.notes)          c.push({key:'notes',         label:'Dependencies / Notes'});
+  if(columns.jira)           c.push({key:'jira',           label:'Jira'});
   return c;
 }
 function buildHeader(){
@@ -3058,7 +3069,7 @@ function renderTable(){
       const priority  = columns.priority ? (row[columns.priority]||'').toString().trim() : '';
       const assignee  = columns.assignee ? (row[columns.assignee]||'').toString().trim() : (row.__sheetTab||'').trim();
       const notes     = columns.notes    ? (row[columns.notes]   ||'').toString().trim() : '';
-      const statusCls = {'Active':'active-s','Inactive':'inactive-s','Complete':'complete-s','On Hold':'onhold-s'}[rowStatus]||'inactive-s';
+      const statusCls = {'Active':'active-s','Inactive':'inactive-s','Complete':'complete-s','On Hold':'onhold-s','Blocked':'blocked-s'}[rowStatus]||'inactive-s';
       const trCls     = rowStatus==='Complete' ? 'inactive-row complete-row' : rowStatus!=='Active' ? 'inactive-row' : '';
 
       return `<tr class="${trCls} pr-${pc}" data-idx="${idx}" onclick="openRowDetail(${idx})" style="cursor:pointer">
@@ -3101,6 +3112,14 @@ function renderTable(){
           return `<td>${display?`<span class="assignee-pill">${esc(display)}</span>`:'<span style="color:var(--muted)">—</span>'}</td>`;
         }
         if(c.key==='notes') return `<td class="col-notes"><div class="notes-text" onclick="this.classList.toggle('expanded')">${esc(val||'—')}</div></td>`;
+        if(c.key==='jira'){
+          if(!val) return `<td style="color:var(--muted)">—</td>`;
+          const isUrl = val.startsWith('http');
+          const display = val.replace(/^https?:\/\/[^/]+\//, '').substring(0,20);
+          return isUrl
+            ? `<td><a href="${esc(val)}" target="_blank" style="color:var(--accent);font-size:.72rem;font-family:'IBM Plex Mono',monospace;text-decoration:none">${esc(display)}↗</a></td>`
+            : `<td style="font-size:.72rem;font-family:'IBM Plex Mono',monospace;color:var(--accent)">${esc(val)}</td>`;
+        }
         return `<td>${esc(val||'—')}</td>`;
       }).join('');
       const statusCls={'Active':'active-s','Inactive':'inactive-s','Complete':'complete-s','On Hold':'onhold-s'}[rowStatus]||'inactive-s';
@@ -3114,11 +3133,26 @@ function renderTable(){
 function setStatusDirect(idx, newStatus){
   const row = allRows[idx];
   if(!row) return;
+  // Blocked requires dependencies
+  if(newStatus === 'Blocked'){
+    const notesVal = columns.notes ? (allRows[idx][columns.notes]||'').toString().trim() : '';
+    if(!notesVal){
+      alert('A task marked Blocked must have a dependency or reason in the Dependencies / Notes field.');
+      return;
+    }
+  }
   statusMap[idx] = newStatus;
   const key = (row.__sheetTab||'') + '||' + (columns.task ? (row[columns.task]||'') : idx);
   if(!localOverrides[key]) localOverrides[key] = {};
   localOverrides[key].status = newStatus;
   if(columns.status) allRows[idx][columns.status] = newStatus;
+  // Stamp dateCompleted when marking Complete
+  if(newStatus === 'Complete' && columns.dateCompleted){
+    const today = new Date().toISOString().split('T')[0];
+    allRows[idx][columns.dateCompleted] = today;
+    if(!localOverrides[key]) localOverrides[key] = {};
+    localOverrides[key].dateCompleted = today;
+  }
   renderStats(); renderTable();
   // Write to sheet
   if(gasUrl && gasSecret && columns.status){
@@ -3259,6 +3293,22 @@ const TEAM_MEMBERS = ['Jessica','Mat','Lawrence','Sayge','Sai','Matthew','Robert
 let aiDiff = null;
 
 // ── Open / close ─────────────────────────────────────────────
+function loadCSVIntoAI(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const text = e.target.result;
+    document.getElementById('ai-rawtext').value = text;
+    // Reset input so same file can be re-selected
+    input.value = '';
+    // Show a brief notice
+    const status = document.getElementById('ai-parse-status');
+    if(status){ status.textContent = '📎 CSV loaded — click Sync to process.'; setTimeout(()=>{ if(status.textContent.startsWith('📎')) status.textContent=''; }, 4000); }
+  };
+  reader.readAsText(file);
+}
+
 function openAIImport(){
   const modal = document.getElementById('ai-import-modal');
   modal.style.display = 'flex';
@@ -4574,6 +4624,17 @@ function openRowDetail(idx){
         oninput="saveFieldEdit(${idx},'notes',this.value)">${esc(curNotes)}</textarea>
     </div>`;
 
+  // ── Editable: Jira ──
+  const curJira = edits.jira ?? (columns.jira ? (row[columns.jira]||'').toString().trim() : '');
+  const jiraField = columns.jira ? `
+    <div class="rd-field">
+      <div class="rd-label">Jira Ticket / URL</div>
+      <input type="text" class="rd-input" id="rd-edit-jira" value="${esc(curJira)}"
+        placeholder="PROJ-123 or https://..."
+        oninput="saveFieldEdit(${idx},'jira',this.value)"/>
+      ${curJira && curJira.startsWith('http') ? `<a href="${esc(curJira)}" target="_blank" style="font-size:.72rem;color:var(--accent);display:block;margin-top:4px">Open in Jira ↗</a>` : ''}
+    </div>` : '';
+
   // ── Status dropdown + Mark as Complete button ──
   const selActive   = rowStatus==='Active'   ? 'selected' : '';
   const selInactive = rowStatus==='Inactive' ? 'selected' : '';
@@ -4587,11 +4648,12 @@ function openRowDetail(idx){
     + '<option value="Active" ' + selActive + '>✅ Active</option>'
     + '<option value="Inactive" ' + selInactive + '>⏸ Inactive</option>'
     + '<option value="On Hold" ' + selOnHold + '>🔶 On Hold</option>'
+    + '<option value="Blocked" ' + (rowStatus==='Blocked'?'selected':'') + '>🚫 Blocked</option>'
     + '<option value="Complete" ' + selComplete + '>🏁 Complete</option>'
     + '</select></div>' + completeBtn;
 
   document.getElementById('rd-body').innerHTML =
-    readOnlyFields + priorityField + dueDateField + notesField + statusField;
+    readOnlyFields + priorityField + dueDateField + notesField + jiraField + statusField;
 
   document.getElementById('row-detail').classList.add('open');
   document.getElementById('rd-overlay').classList.add('open');
@@ -4618,6 +4680,9 @@ function saveFieldEdit(idx, field, value){
   } else if(field === 'notes' && columns.notes){
     allRows[idx][columns.notes] = value;
     writeBackToSheet(idx, columns.notes, value);
+  } else if(field === 'jira' && columns.jira){
+    allRows[idx][columns.jira] = value;
+    writeBackToSheet(idx, columns.jira, value);
   }
 
   renderStats();

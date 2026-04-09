@@ -1384,7 +1384,8 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
             <col id="col-priority" style="width:110px;min-width:90px">
             <col id="col-type"     style="width:130px;min-width:100px">
             <col id="col-duedate"  style="width:100px;min-width:80px">
-            <col id="col-notes"    style="width:160px;min-width:80px">
+            <col id="col-notes"    style="width:140px;min-width:80px">
+            <col id="col-jira"     style="width:110px;min-width:80px">
             <col id="col-status"   style="width:120px;min-width:100px">
             <col id="col-del"      style="width:32px;min-width:32px">
           </colgroup>
@@ -1398,6 +1399,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
               <th class="ai-th" data-col="col-type">Type</th>
               <th class="ai-th" data-col="col-duedate">Due Date</th>
               <th class="ai-th" data-col="col-notes">Notes</th>
+              <th class="ai-th" data-col="col-jira">Jira</th>
               <th class="ai-th" data-col="col-status">Status</th>
               <th class="ai-th" style="border:none"></th>
             </tr>
@@ -1544,7 +1546,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.7';
+const DHIT_VERSION = '1.69.8';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -3600,6 +3602,7 @@ function renderDiffPreview(assignee){
         tr.appendChild(selCell(row.type,     diffType, row, 'type',     TYPES));
         tr.appendChild(txtCell(row.dueDate,  diffType, row, 'dueDate'));
         tr.appendChild(txtCell(row.notes,    diffType, row, 'notes', true));
+        tr.appendChild(txtCell(row.jira||'', diffType, row, 'jira'));
         tr.appendChild(selCell(row.status,   diffType, row, 'status',   STATUSES));
 
         const tdDel = document.createElement('td');

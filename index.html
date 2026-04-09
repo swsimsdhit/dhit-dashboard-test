@@ -1535,7 +1535,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.4';
+const DHIT_VERSION = '1.69.5';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -2842,12 +2842,57 @@ function renderStats(){
     <div class="stat-card medium  ${activePriority==='Medium'  ?'active-filter':''}" onclick="setPriorityDirect('Medium')">  <div class="lbl">Medium</div>  <div class="val">${c.medium}</div></div>
     <div class="stat-card low     ${activePriority==='Low'     ?'active-filter':''}" onclick="setPriorityDirect('Low')">     <div class="lbl">Low</div>     <div class="val">${c.low}</div></div>`;
 
-  // ── Client counts (bypass client filter for chip visibility) ─
+  // ── Chip helper: build + wire a group of filter chips ──────
+  function buildChips(containerId, groupId, totalId, keys, counts, totalCount, activeArr, filterFn, removeFn) {
+    const grp  = document.getElementById(groupId);
+    const body = document.getElementById(containerId);
+    const tot  = document.getElementById(totalId);
+    if(!grp || !body) return;
+    if(!keys.length){ grp.style.display='none'; return; }
+    grp.style.display = '';
+    if(tot) tot.textContent = keys.length + ' ' + groupId.replace('-group','').replace('assignees','assignees').replace('clients','clients').replace('products','products');
+
+    // Always full rebuild — simple, reliable, no incremental complexity
+    body.innerHTML = '';
+    const allKeys = ['All', ...keys];
+    allKeys.forEach(key => {
+      const isAll    = key === 'All';
+      const isActive = isAll ? activeArr.length === 0 : activeArr.includes(key);
+      const count    = isAll ? totalCount : (counts[key] || 0);
+
+      const chip = document.createElement('div');
+      chip.className = 'stat-chip' + (isActive ? ' active-filter' : '');
+      chip.style.cursor = 'pointer';
+
+      const valEl = document.createElement('span');
+      valEl.className = 'chip-val';
+      valEl.textContent = count;
+
+      const lblEl = document.createElement('span');
+      lblEl.className = 'chip-lbl';
+      lblEl.textContent = key;
+
+      chip.appendChild(valEl);
+      chip.appendChild(lblEl);
+
+      if(isActive && !isAll){
+        const x = document.createElement('span');
+        x.className = 'chip-clear';
+        x.textContent = '✕';
+        x.addEventListener('click', function(e){ e.stopPropagation(); removeFn(key); });
+        chip.appendChild(x);
+      }
+
+      chip.addEventListener('click', function(){ filterFn(key); });
+      body.appendChild(chip);
+    });
+  }
+
+  // ── Client counts ─────────────────────────────────────────
   const savedClients = activeClients;
   activeClients = [];
   const preClientRows = getRows(activeUser, activePriority, activeStatus, document.getElementById('search-input').value);
   activeClients = savedClients;
-
   const clientCounts = {};
   if(columns.client){
     preClientRows.forEach(r => {
@@ -2855,40 +2900,11 @@ function renderStats(){
       if(cl) clientCounts[cl] = (clientCounts[cl]||0) + 1;
     });
   }
-  const clients  = Object.keys(clientCounts).sort();
-  const cgroup   = document.getElementById('clients-group');
-  const cbody    = document.getElementById('client-chips-body');
-  const ctotalEl = document.getElementById('clients-group-total');
+  buildChips('client-chips-body','clients-group','clients-group-total',
+    Object.keys(clientCounts).sort(), clientCounts, rows.length,
+    activeClients, setClientFilter, removeClientFilter);
 
-  if(cgroup && cbody){
-    if(clients.length){
-      cgroup.style.display = '';
-      if(ctotalEl) ctotalEl.textContent = clients.length + ' clients';
-      const existingCKeys = [...cbody.querySelectorAll('[data-client]')].map(el=>el.dataset.client).join(',');
-      const newCKeys = ['All',...clients].join(',');
-      if(existingCKeys !== newCKeys){
-        const chip = (val, label, isActive, key) => {
-          const xBtn = isActive && key!=='All' ? `<span class="chip-clear" data-client="${esc(key)}" data-remove-client="1">✕</span>` : '';
-          return `<div class="stat-chip ${isActive?'active-filter':''}" data-client="${esc(key)}"><span class="chip-val">${val}</span><span class="chip-lbl">${esc(label)}</span>${xBtn}</div>`;
-        };
-        cbody.innerHTML = chip(rows.length,'All',activeClients.length===0,'All') + clients.map(cl=>chip(clientCounts[cl],cl,activeClients.includes(cl),cl)).join('');
-      } else {
-        const allActive = activeClients.length===0;
-        cbody.querySelectorAll('[data-client]').forEach(el=>{
-          const key=el.dataset.client, isActive=key==='All'?allActive:activeClients.includes(key);
-          el.classList.toggle('active-filter',isActive);
-          if(!el.onclick) el.onclick = function(){ setClientFilter(this.dataset.client); };
-          const valEl=el.querySelector('.chip-val');
-          if(valEl){if(key==='All')valEl.textContent=rows.length;else if(clientCounts[key]!==undefined)valEl.textContent=clientCounts[key];}
-          const existing=el.querySelector('.chip-clear');
-          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.onclick=function(e){e.stopPropagation();removeClientFilter(key);};x.textContent='✕';el.appendChild(x);}
-          else if((!isActive||key==='All')&&existing){existing.remove();}
-        });
-      }
-    } else { cgroup.style.display='none'; }
-  }
-
-  // ── Product counts (bypass product filter for chip visibility)
+  // ── Product counts ────────────────────────────────────────
   const savedProducts = activeProducts;
   activeProducts = [];
   const preProductRows = getRows(activeUser, activePriority, activeStatus, document.getElementById('search-input').value);
@@ -2900,114 +2916,28 @@ function renderStats(){
       if(normalized) productCounts[normalized] = (productCounts[normalized]||0) + 1;
     });
   }
-  const products = Object.keys(productCounts).sort();
-  const group    = document.getElementById('products-group');
-  const body     = document.getElementById('product-chips-body');
-  const totalEl  = document.getElementById('products-group-total');
+  const group   = document.getElementById('products-group');
+  const totalEl = document.getElementById('products-group-total');
+  if(group && totalEl) totalEl.textContent = Object.keys(productCounts).length + ' products';
+  buildChips('product-chips-body','products-group','products-group-total',
+    Object.keys(productCounts).sort(), productCounts, rows.length,
+    activeProducts, setProductFilter, removeProductFilter);
 
-  if(!group || !body) return;
-
-  if(products.length){
-    group.style.display = '';
-    if(totalEl) totalEl.textContent = products.length + ' products';
-
-    // Only rebuild HTML if the product list itself changed
-    // Otherwise just update active classes in-place — avoids reflow/transition flicker
-    const existingKeys = [...body.querySelectorAll('[data-product]')]
-      .map(el => el.dataset.product).join(',');
-    const newKeys = ['All', ...products].join(',');
-
-    if(existingKeys !== newKeys){
-      // Full rebuild — product list changed
-      const chip = (val, label, isActive, key) => {
-        const xBtn = isActive && key !== 'All'
-          ? `<span class="chip-clear" data-product="${esc(key)}" data-remove="1">✕</span>`
-          : '';
-        return `<div class="stat-chip ${isActive?'active-filter':''}" data-product="${esc(key)}">
-          <span class="chip-val">${val}</span><span class="chip-lbl">${esc(label)}</span>${xBtn}
-        </div>`;
-      };
-      const allActive = activeProducts.length === 0;
-      body.innerHTML =
-        chip(rows.length, 'All', allActive, 'All') +
-        products.map(p => chip(productCounts[p], p, activeProducts.includes(p), p)).join('');
-    } else {
-      // Incremental update — just patch counts and active classes, no innerHTML rebuild
-      const allActive = activeProducts.length === 0;
-      body.querySelectorAll('[data-product]').forEach(el => {
-        const key = el.dataset.product;
-        const isActive = key === 'All' ? allActive : activeProducts.includes(key);
-        el.classList.toggle('active-filter', isActive);
-        if(!el.onclick) el.onclick = function(){ setProductFilter(this.dataset.product); };
-
-        // Update count
-        const valEl = el.querySelector('.chip-val');
-        if(valEl){
-          if(key === 'All') valEl.textContent = rows.length;
-          else if(productCounts[key] !== undefined) valEl.textContent = productCounts[key];
-        }
-
-        // Add/remove ✕ button
-        const existing = el.querySelector('.chip-clear');
-        if(isActive && key !== 'All' && !existing){
-          const x = document.createElement('span');
-          x.className = 'chip-clear';
-          x.onclick = function(e){ e.stopPropagation(); removeProductFilter(key); };
-          x.textContent = '✕';
-          el.appendChild(x);
-        } else if((!isActive || key === 'All') && existing){
-          existing.remove();
-        }
-      });
-    }
-  } else {
-    group.style.display = 'none';
-  }
-
-  // ── Assignee group ──────────────────────────────────────────
+  // ── Assignee counts ───────────────────────────────────────
   const savedAssignees = activeAssignees;
   activeAssignees = [];
   const preAssigneeRows = getRows(activeUser, activePriority, activeStatus, document.getElementById('search-input').value);
   activeAssignees = savedAssignees;
-
   const assigneeCounts = {};
   preAssigneeRows.forEach(r => {
     const a = columns.assignee ? (r[columns.assignee]||'').toString().trim() : '';
     const name = a || (r.__sheetTab||'').trim();
     if(name) assigneeCounts[name] = (assigneeCounts[name]||0) + 1;
   });
-  const assignees = Object.keys(assigneeCounts).sort();
-  const agroup   = document.getElementById('assignees-group');
-  const abody    = document.getElementById('assignee-chips-body');
-  const atotalEl = document.getElementById('assignees-group-total');
+  buildChips('assignee-chips-body','assignees-group','assignees-group-total',
+    Object.keys(assigneeCounts).sort(), assigneeCounts, rows.length,
+    activeAssignees, setAssigneeFilter, removeAssigneeFilter);
 
-  if(agroup && abody){
-    if(assignees.length){
-      agroup.style.display = '';
-      if(atotalEl) atotalEl.textContent = assignees.length + ' assignees';
-      const existingAKeys = [...abody.querySelectorAll('[data-assignee]')].map(el=>el.dataset.assignee).join(',');
-      const newAKeys = ['All',...assignees].join(',');
-      if(existingAKeys !== newAKeys){
-        const chip = (val, label, isActive, key) => {
-          const xBtn = isActive && key!=='All' ? `<span class="chip-clear" onclick="event.stopPropagation();removeAssigneeFilter('${esc(key)}')">✕</span>` : '';
-          return `<div class="stat-chip ${isActive?'active-filter':''}" data-assignee="${esc(key)}" onclick="setAssigneeFilter('${esc(key)}')" style="cursor:pointer"><span class="chip-val">${val}</span><span class="chip-lbl">${esc(label)}</span>${xBtn}</div>`;
-        };
-        abody.innerHTML = chip(rows.length,'All',activeAssignees.length===0,'All') + assignees.map(a=>chip(assigneeCounts[a],a,activeAssignees.includes(a),a)).join('');
-      } else {
-        const allActive = activeAssignees.length===0;
-        abody.querySelectorAll('[data-assignee]').forEach(el=>{
-          const key=el.dataset.assignee, isActive=key==='All'?allActive:activeAssignees.includes(key);
-          el.classList.toggle('active-filter',isActive);
-          const valEl=el.querySelector('.chip-val');
-          if(valEl){if(key==='All')valEl.textContent=rows.length;else if(assigneeCounts[key]!==undefined)valEl.textContent=assigneeCounts[key];}
-          const existing=el.querySelector('.chip-clear');
-          if(!el.onclick) el.onclick = function(){ setAssigneeFilter(this.dataset.assignee); };
-          if(isActive&&key!=='All'&&!existing){const x=document.createElement('span');x.className='chip-clear';x.onclick=function(e){e.stopPropagation();removeAssigneeFilter(key);};x.textContent='✕';el.appendChild(x);}
-          else if((!isActive||key==='All')&&existing){existing.remove();}
-        });
-      }
-    } else { agroup.style.display='none'; }
-  }
 
   renderActivePills();
   updateClearBtn();

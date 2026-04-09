@@ -1544,11 +1544,11 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.6';
+const DHIT_VERSION = '1.69.7';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
-  GAS_URL:    'https://script.google.com/macros/s/AKfycbycCuiLaf-W501EIUy8EGqG9_zjNJsHCd4fBdfWFNku5J02XO3Fj0eytbZP0qHTDSGIJQ/exec',
+  GAS_URL:    'https://script.google.com/macros/s/AKfycbwQXQwfCDHFF6JPiLmeI0upYpLkCLk-Tl-cBzxe5jGlFLKXFvU3uqiBHWV7U-qbpu9u/exec',
   GAS_SECRET: 'Dynamic123',
 
   // ── User Accounts ──────────────────────────────────────────
@@ -3696,7 +3696,8 @@ async function applyDiffToSheet(){
       row.dueDate  || '',
       '',
       row.notes    || '',
-      row.status   || 'Active'
+      row.status   || 'Active',
+      row.jira     || ''
     ];
     try {
       await appendRowToSheet(assignee, rowArr);

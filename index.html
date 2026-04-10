@@ -1546,7 +1546,7 @@ tbody tr.selected-row td{background:rgba(88,166,255,.06)}
 // ██████████████████████████████████████████████████████████████
 // ══════════════════════════════════════════════════════════════
 
-const DHIT_VERSION = '1.69.8';
+const DHIT_VERSION = '1.69.9';
 
 const DHIT_CONFIG = {
   // ── GAS Connection (auto-loads on login — hidden from UI) ──
@@ -4621,10 +4621,16 @@ function openRowDetail(idx){
 
   // ── Editable: Notes ──
   const curNotes = edits.notes ?? (columns.notes ? (row[columns.notes]||'').toString().trim() : '');
+  const notesRequired = rowStatus === 'Blocked';
   const notesField = `
     <div class="rd-field">
-      <div class="rd-label">Dependencies / Notes</div>
+      <div class="rd-label">
+        Dependencies / Notes
+        ${notesRequired ? '<span style="color:#ef4444;margin-left:4px;font-size:.9rem" title="Required when status is Blocked">★</span>' : ''}
+        ${notesRequired ? '<span style="font-size:.68rem;color:#ef4444;font-weight:400;margin-left:4px">required for Blocked</span>' : ''}
+      </div>
       <textarea class="rd-textarea" id="rd-edit-notes"
+        style="${notesRequired ? 'border-color:#ef4444;' : ''}"
         oninput="saveFieldEdit(${idx},'notes',this.value)">${esc(curNotes)}</textarea>
     </div>`;
 
